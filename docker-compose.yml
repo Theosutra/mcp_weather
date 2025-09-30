@@ -8,3 +8,10 @@ services:
     ports:
       - "8085:8085"
     restart: unless-stopped
+    networks:
+      - default
+      - interface_ia_app-network
+
+networks:
+  interface_ia_app-network:
+    external: true
