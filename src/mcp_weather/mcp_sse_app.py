@@ -55,7 +55,7 @@ async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[TextCon
 
 
 # Auth simple par Bearer
-AUTH_TOKEN = os.getenv("MCP_AUTH_TOKEN", "")
+AUTH_TOKEN = (os.getenv("MCP_AUTH_TOKEN", "") or "").strip().strip('"')
 
 def _check_auth(req: Request) -> bool:
 	if not AUTH_TOKEN:
@@ -63,24 +63,30 @@ def _check_auth(req: Request) -> bool:
 	auth = req.headers.get("authorization") or req.headers.get("Authorization")
 	if not auth or not auth.lower().startswith("bearer "):
 		return False
-	return auth.split(" ", 1)[1] == AUTH_TOKEN
+	received = auth.split(" ", 1)[1].strip().strip('"')
+	return received == AUTH_TOKEN
 
 
-# Endpoint MCP SSE minimaliste — proxy la requête/flux vers le serveur
-# Note: En pratique, utiliser un utilitaire du SDK MCP pour SSE si dispo; ici, on répond aux init simples.
 async def mcp_endpoint(request: Request):
 	if not _check_auth(request):
 		return PlainTextResponse("Unauthorized", status_code=401)
-	# Pour une intégration complète SSE (stream), on utiliserait un endpoint EventSourceResponse
-	# et le protocole complet. Ici, on expose une route d’info simple pour vérification.
 	return JSONResponse({
 		"server": "mcp-weather",
 		"tools": ["get_weather", "get_forecast"],
 	})
 
 
+async def health_endpoint(request: Request):
+	# Pas d'auth pour diagnostic rapide
+	return JSONResponse({
+		"ok": True,
+		"auth_required": bool(AUTH_TOKEN),
+	})
+
+
 routes = [
 	Route("/mcp", mcp_endpoint, methods=["GET"]),
+	Route("/mcp/health", health_endpoint, methods=["GET"]),
 ]
 
 app = Starlette(debug=False, routes=routes)
