@@ -1,0 +1,10 @@
+version: "3.9"
+services:
+  mcp-weather:
+    build: .
+    container_name: mcp-weather
+    environment:
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN}
+    ports:
+      - "8085:8085"
+    restart: unless-stopped
